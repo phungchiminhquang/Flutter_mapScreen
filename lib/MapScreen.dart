@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -29,7 +32,7 @@ class _MapScreenState extends State<MapScreen> {
           title: Text("Map Screen"),
         ),
         body: GoogleMap(
-            onMapCreated: _onMapCreated,
+            // onMapCreated: _onMapCreated,
             markers: <Marker>{_createMarker()},
             initialCameraPosition: CameraPosition(
                 target: LatLng(10.877611249724893, 106.80955616597318),
@@ -53,11 +56,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _createMarkerImageFromAsset(BuildContext context) async {
     if (_markerIcon == null) {
-      final ImageConfiguration imageConfiguration =
-          createLocalImageConfiguration(context, size: Size.square(20));
-      BitmapDescriptor.fromAssetImage(
-              imageConfiguration, 'assets/b.png')
-          .then(_updateBitmap);
+      getBitmapDescriptorFromAssetBytes('assets/b.png',150).then(_updateBitmap);
     }
   }
 
@@ -71,5 +70,21 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       controller = controllerParam;
     });
+  }
+
+  Future<Uint8List> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
+        targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+  }
+
+  Future<BitmapDescriptor> getBitmapDescriptorFromAssetBytes(
+      String path, int width) async {
+    final Uint8List imageData = await getBytesFromAsset(path, width);
+    return BitmapDescriptor.fromBytes(imageData);
   }
 }
